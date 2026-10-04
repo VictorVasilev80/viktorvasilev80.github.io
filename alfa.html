@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ОТБОР АЛФА // ГЛАВЕН ЩАБ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap');
+:root{--tc:#00ff41;--tc-dim:#00aa2a;--tc-glow:rgba(0,255,65,0.12);--tc-border:#0a5a1a;--bg:#030803;--red:#ff2233;--gold:#ffcc44;--cyan:#44ccff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;}
+.scan-lines{position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:9999;}
+.vignette{position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.7) 100%);pointer-events:none;z-index:9998;}
+.screen{display:none;min-height:100vh;flex-direction:column;position:relative;z-index:1;}
+.screen.active{display:flex;}
+@keyframes flicker{0%,97%,100%{opacity:1}98%{opacity:.4}99%{opacity:.9}}
+@keyframes pulsered{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes scan{0%{left:-40%}100%{left:140%}}
+@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes cb{0%,100%{opacity:1}50%{opacity:0}}
+
+/* LOCK */
+#s-lock{background:radial-gradient(ellipse at center,#051005,#020502);align-items:center;justify-content:center;gap:18px;padding:30px;}
+.lock-logo{font-family:'Orbitron',sans-serif;font-size:clamp(14px,5vw,22px);font-weight:900;color:#55ff55;text-shadow:0 0 20px rgba(0,255,65,0.5);letter-spacing:6px;text-align:center;animation:flicker 6s infinite;}
+.lock-sub{font-size:9px;letter-spacing:5px;color:rgba(0,255,65,0.35);text-align:center;}
+.lock-div{width:100%;max-width:300px;height:1px;background:linear-gradient(90deg,transparent,var(--tc-border),transparent);}
+.pin-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:280px;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin:4px 0;}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--tc-border);transition:all .15s;}
+.pin-dot.on{background:var(--tc);border-color:var(--tc);box-shadow:0 0 10px var(--tc);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px;}
+.pk{padding:18px 10px;background:transparent;border:1px solid var(--tc-border);color:var(--tc);font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0);user-select:none;}
+.pk:active,.pk.pressed{background:var(--tc-glow);border-color:var(--tc);}
+.pk.del{color:#555;border-color:#222;font-size:13px;letter-spacing:1px;}
+.pk.del:active{border-color:#555;color:#888;background:rgba(255,255,255,.05);}
+.pin-err{font-size:10px;letter-spacing:3px;color:var(--red);text-align:center;min-height:18px;animation:pulsered 1s infinite;}
+
+/* WAIT */
+#s-wait{background:radial-gradient(ellipse at center,#051005,#020502);align-items:center;justify-content:center;padding:20px;gap:14px;}
+.hq-logo{font-family:'Orbitron',sans-serif;font-size:clamp(14px,5vw,22px);font-weight:900;color:#55ff55;text-shadow:0 0 20px rgba(0,255,65,0.5);letter-spacing:6px;text-align:center;animation:flicker 6s infinite;}
+.hq-sub{font-size:9px;letter-spacing:5px;color:rgba(0,255,65,0.35);text-align:center;margin-top:-10px;}
+.w-div{width:100%;max-width:520px;height:1px;background:linear-gradient(90deg,transparent,var(--tc-border),transparent);}
+.sg-lbl{font-size:9px;letter-spacing:3px;color:var(--tc-dim);}
+.srow{display:flex;gap:12px;width:100%;max-width:520px;flex-wrap:wrap;}
+.sg{flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px;}
+select{background:rgba(0,10,0,.9);border:1px solid var(--tc-border);color:var(--tc);font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px;cursor:pointer;outline:none;width:100%;}
+select:focus{border-color:var(--tc);}
+select option{background:#020d02;}
+.mbtn{width:100%;max-width:520px;padding:13px;background:transparent;border:2px solid var(--tc);color:var(--tc);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;cursor:pointer;transition:all .3s;margin-bottom:4px;text-shadow:0 0 8px var(--tc);box-shadow:0 0 12px var(--tc-glow);}
+.mbtn:hover{background:var(--tc-glow);}
+.mbtn.sec{border-color:#444;color:#777;text-shadow:none;box-shadow:none;font-size:10px;letter-spacing:3px;}
+.mbtn.sec:hover{border-color:#777;color:#aaa;background:transparent;}
+.mbtn:disabled{opacity:.35;cursor:not-allowed;}
+.st-lbl{font-size:9px;letter-spacing:3px;color:var(--tc-dim);text-align:center;}
+.src-ind{font-size:9px;letter-spacing:2px;padding:4px 12px;border:1px solid var(--tc-dim);color:var(--tc-dim);text-align:center;width:100%;max-width:520px;display:none;}
+
+/* TOPBAR */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:2px solid var(--tc);background:rgba(0,12,2,.97);position:sticky;top:0;z-index:200;}
+.tb-team{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;letter-spacing:4px;color:var(--tc);}
+.tb-clk{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;color:var(--tc);}
+.tb-back{background:transparent;border:1px solid var(--tc);color:var(--tc);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:4px 10px;cursor:pointer;opacity:.7;}
+
+/* NAV */
+.nav-tabs{display:flex;border-bottom:1px solid var(--tc-border);background:rgba(0,8,0,.95);position:sticky;top:46px;z-index:199;}
+.nav-tab{flex:1;padding:10px 4px;text-align:center;font-size:9px;letter-spacing:2px;color:var(--tc-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;position:relative;}
+.nav-tab.active{color:var(--tc);border-bottom-color:var(--tc);background:rgba(0,15,3,.5);}
+.badge{position:absolute;top:4px;right:6px;background:var(--red);color:#fff;font-size:8px;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;animation:pulsered 1.5s infinite;}
+
+/* CONTENT */
+.tc{flex:1;padding:12px;max-width:860px;margin:0 auto;width:100%;}
+.tab-body{display:none;} .tab-body.active{display:block;}
+
+/* CARDS */
+.card{border:1px solid var(--tc-border);background:rgba(0,8,1,.8);margin-bottom:10px;overflow:hidden;}
+.card-hdr{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--tc-border);font-size:10px;letter-spacing:3px;color:var(--tc-dim);background:rgba(0,12,2,.9);}
+.card-body{padding:14px;}
+
+/* TX HEADER */
+.txhdr{border:1px solid var(--tc);padding:14px;margin-bottom:10px;position:relative;overflow:hidden;background:rgba(0,10,2,.8);box-shadow:0 0 15px var(--tc-glow);}
+.txhdr::before{content:'';position:absolute;top:0;left:-40%;width:40%;height:1px;background:linear-gradient(90deg,transparent,var(--tc),transparent);animation:scan 5s linear infinite;}
+.tx-from{font-size:9px;letter-spacing:4px;color:var(--tc-dim);margin-bottom:5px;}
+.tx-op{font-family:'Orbitron',sans-serif;font-size:17px;font-weight:900;letter-spacing:3px;color:var(--tc);text-shadow:0 0 12px var(--tc);margin-bottom:10px;}
+.cls-badge{display:inline-block;padding:2px 10px;border:1px solid var(--red);color:var(--red);font-size:10px;letter-spacing:3px;margin-bottom:10px;animation:pulsered 3s infinite;}
+.cust-badge{display:inline-block;padding:1px 8px;border:1px solid var(--gold);color:var(--gold);font-size:9px;letter-spacing:2px;margin-left:8px;vertical-align:middle;}
+.tx-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:10px;}
+.tx-mi .lbl{font-size:9px;letter-spacing:2px;color:var(--tc-dim);}
+.tx-mi .val{font-size:12px;letter-spacing:2px;color:var(--gold);margin-top:2px;}
+.prog-bar{height:2px;background:#1a2a1a;margin-top:10px;border-radius:1px;overflow:hidden;}
+.prog-fill{height:100%;width:0%;background:var(--tc);box-shadow:0 0 6px var(--tc);transition:width .3s;}
+.conf-ban{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--red);margin-bottom:10px;color:var(--red);background:rgba(30,0,0,.6);font-size:11px;letter-spacing:1px;animation:pulsered 2.5s infinite;}
+
+/* TEXT */
+.mtext{font-size:12px;line-height:1.8;color:var(--tc);min-height:60px;}
+.mtext.loading::after{content:"\u2588";animation:cb .8s step-start infinite;}
+.obj-list{list-style:none;}
+.oi{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px;}
+.oi:last-child{border-bottom:none;}
+.on{font-family:'Orbitron',sans-serif;font-size:10px;min-width:28px;margin-top:2px;color:var(--gold);}
+.pb{font-size:8px;padding:2px 5px;border:1px solid;letter-spacing:1px;margin-top:3px;min-width:36px;text-align:center;flex-shrink:0;}
+.pb.p{border-color:var(--red);color:var(--red);} .pb.s{border-color:var(--gold);color:var(--gold);} .pb.o{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.3);}
+.it{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;color:var(--tc);}
+.it:last-child{border-bottom:none;}
+
+/* COUNTDOWN */
+.cdw{text-align:center;padding:16px;}
+.cd-lbl{font-size:9px;letter-spacing:4px;color:var(--tc-dim);margin-bottom:6px;}
+.cdd{font-family:'VT323',monospace;font-size:56px;letter-spacing:6px;color:var(--tc);text-shadow:0 0 20px var(--tc);line-height:1;}
+.cdd.urgent{color:var(--red)!important;text-shadow:0 0 20px var(--red)!important;animation:flicker .4s infinite;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+
+/* TASKS */
+.task-card{border:1px solid;padding:14px;margin-bottom:10px;position:relative;}
+.task-card.locked{border-color:#1a1a1a;background:rgba(3,3,3,.6);opacity:.5;}
+.task-card.active{border-color:var(--gold);background:rgba(20,15,0,.8);box-shadow:0 0 12px rgba(255,204,68,.1);}
+.task-card.done{border-color:#1a3a1a;background:rgba(0,8,0,.6);}
+.t-num{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:3px;margin-bottom:6px;}
+.t-num.locked{color:#333;} .t-num.active{color:var(--gold);} .t-num.done{color:var(--tc-dim);}
+.t-title{font-size:13px;letter-spacing:1px;margin-bottom:6px;}
+.t-title.locked{color:#333;} .t-title.active{color:var(--tc);} .t-title.done{color:var(--tc-dim);text-decoration:line-through;opacity:.5;}
+.t-desc{font-size:11px;line-height:1.6;color:var(--tc-dim);margin-bottom:10px;}
+.t-badge{position:absolute;top:10px;right:10px;font-size:9px;letter-spacing:2px;padding:2px 8px;border:1px solid;}
+.t-badge.done{color:#00ff41;border-color:#00ff41;} .t-badge.locked{color:#333;border-color:#1a1a1a;}
+.unlock-btn{width:100%;padding:10px;background:transparent;border:1px solid var(--gold);color:var(--gold);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;margin-top:6px;}
+.qr-btn{width:100%;padding:12px;background:transparent;border:2px solid var(--tc);color:var(--tc);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;cursor:pointer;margin-top:6px;text-shadow:0 0 8px var(--tc);}
+.no-items{font-size:11px;letter-spacing:2px;color:#2a2a2a;text-align:center;padding:30px;}
+
+/* MESSAGES */
+.msg-card{border:1px solid;padding:12px 14px;margin-bottom:8px;}
+.msg-card.unread{border-color:var(--red);background:rgba(25,0,0,.6);animation:pulsered 3s infinite;}
+.msg-card.read{border-color:#1a2a1a;background:rgba(0,4,0,.6);opacity:.7;}
+.msg-type{font-size:9px;letter-spacing:3px;margin-bottom:4px;}
+.msg-type.alert{color:var(--red);} .msg-type.info{color:var(--gold);} .msg-type.order{color:var(--tc);}
+.msg-text{font-size:12px;line-height:1.6;color:var(--tc);}
+.read-btn{background:transparent;border:1px solid #333;color:#444;font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;font-family:'Share Tech Mono',monospace;margin-top:6px;}
+
+/* SETTINGS */
+#s-settings{background:#050505;}
+#s-pick{background:#050505;}
+.dark-topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid #222;background:#080808;position:sticky;top:0;z-index:200;}
+.dark-back{background:transparent;border:1px solid #333;color:#555;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:4px 10px;cursor:pointer;}
+.set-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;letter-spacing:4px;color:#555;margin-bottom:12px;text-align:center;}
+.esec{border:1px solid #1a1a1a;margin-bottom:12px;overflow:hidden;}
+.esec-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #1a1a1a;font-size:10px;letter-spacing:3px;color:var(--tc-dim);background:rgba(0,10,2,.9);}
+.esec-body{padding:12px;background:rgba(4,4,4,.9);}
+.frow{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.frow:last-child{margin-bottom:0;}
+.flbl{font-size:9px;letter-spacing:2px;color:var(--tc-dim);}
+input[type=text],input[type=password],textarea{width:100%;background:rgba(0,0,0,.85);border:1px solid #222;color:#ccc;font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px;letter-spacing:.5px;outline:none;resize:vertical;line-height:1.6;}
+input:focus,textarea:focus{border-color:#444;color:#eee;}
+.add-row-btn{background:transparent;border:1px solid #2a2a2a;color:#444;font-family:'Share Tech Mono',monospace;font-size:10px;padding:6px 10px;cursor:pointer;letter-spacing:2px;margin-top:4px;}
+.add-row-btn:hover{border-color:var(--tc-border);color:var(--tc-dim);}
+.row-wrap{border:1px solid #1a2a1a;padding:10px;margin-bottom:8px;background:rgba(0,4,0,.5);position:relative;}
+.del-row{position:absolute;top:8px;right:8px;background:transparent;border:1px solid #2a1111;color:#552222;font-size:12px;width:24px;height:24px;cursor:pointer;}
+.del-row:hover{border-color:var(--red);color:var(--red);}
+.save-settings-btn{width:100%;padding:13px;background:transparent;border:2px solid var(--tc);color:var(--tc);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;cursor:pointer;margin-bottom:10px;text-shadow:0 0 8px var(--tc);}
+.notice{font-size:10px;letter-spacing:2px;padding:8px;text-align:center;border:1px solid;margin-bottom:10px;}
+.notice.ok{border-color:#1a4a1a;color:#00aa2a;} .notice.err{border-color:#4a1a1a;color:#aa3333;}
+/* EDITOR */
+.ed-sec{border:1px solid #1a2a1a;margin-bottom:10px;overflow:hidden;}
+.ed-sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #1a2a1a;font-size:10px;letter-spacing:3px;color:var(--tc-dim);background:rgba(0,10,2,.9);}
+.ed-sec-hdr.b{color:#cc6600;border-color:#3a1a00;background:rgba(10,4,0,.9);}
+.ed-row{border:1px solid #1a2a1a;padding:10px;margin-bottom:8px;background:rgba(0,4,0,.5);position:relative;}
+.ed-row.b{border-color:#2a1a00;background:rgba(6,3,0,.5);}
+.ed-del{position:absolute;top:8px;right:8px;background:transparent;border:1px solid #2a1111;color:#552222;font-size:11px;width:24px;height:24px;cursor:pointer;line-height:1;}
+.ed-del:active{border-color:var(--red);color:var(--red);}
+.sc-item{display:flex;align-items:center;padding:10px 14px;border:1px solid #1a2a1a;background:rgba(0,4,0,.8);margin-bottom:6px;gap:8px;}
+.sc-item-name{flex:1;font-size:12px;letter-spacing:2px;color:#888;}
+.sc-item-roles{font-size:9px;letter-spacing:1px;color:#444;margin-top:3px;}
+.sc-btn{background:transparent;font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 8px;cursor:pointer;border:1px solid;letter-spacing:1px;}
+.sc-btn.e{border-color:#222;color:#444;} .sc-btn.e:active{border-color:#666;color:#888;}
+.sc-btn.d{border-color:#2a1111;color:#552222;} .sc-btn.d:active{border-color:var(--red);color:var(--red);}
+
+
+/* PICK */
+.pick-item{display:flex;align-items:center;padding:10px 14px;border:1px solid #1a2a1a;background:rgba(0,4,0,.8);margin-bottom:6px;cursor:pointer;transition:all .2s;}
+.pick-item:hover,.pick-item.sel{border-color:var(--tc);background:var(--tc-glow);}
+.pick-item-name{font-size:12px;letter-spacing:2px;color:#888;}
+.pick-item.sel .pick-item-name{color:var(--tc);}
+.pick-item-roles{font-size:9px;letter-spacing:1px;color:#444;margin-top:3px;}
+
+/* QR */
+#qr-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.96);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#qr-overlay.active{display:flex;}
+#qr-video{width:100%;max-width:380px;border:2px solid var(--tc);box-shadow:0 0 20px var(--tc-glow);}
+.qr-frame{position:relative;width:100%;max-width:380px;}
+.qr-line{position:absolute;left:0;right:0;height:2px;background:var(--tc);box-shadow:0 0 8px var(--tc);animation:qrs 2s linear infinite;top:0;}
+@keyframes qrs{0%{top:0}100%{top:100%}}
+.qr-lbl{font-size:11px;letter-spacing:3px;color:var(--tc-dim);text-align:center;}
+.qr-res{font-size:10px;letter-spacing:2px;color:var(--gold);text-align:center;min-height:20px;}
+.qr-close-btn{padding:10px 24px;background:transparent;border:1px solid #444;color:#666;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;}
+
+/* NOTIF */
+.notif{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,18,0,.97);border:1px solid var(--tc);color:var(--tc);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:10px 18px;z-index:400;text-align:center;box-shadow:0 0 20px var(--tc-glow);max-width:90%;}
+
+.footer{text-align:center;font-size:9px;letter-spacing:3px;padding:8px;color:rgba(0,80,0,.4);}
+@media(max-width:520px){.two-col{grid-template-columns:1fr;}.tx-meta{grid-template-columns:1fr 1fr;}.tx-op{font-size:14px;}}
+</style>
+</head>
+<body>
+<div class="scan-lines"></div>
+<div class="vignette"></div>
+
+<!-- QR OVERLAY -->
+<div id="qr-overlay">
+  <div style="font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:4px;color:var(--tc)">QR СКАНИРАНЕ</div>
+  <div class="qr-frame"><video id="qr-video" autoplay playsinline></video><div class="qr-line"></div></div>
+  <div class="qr-lbl">НАСОЧЕТЕ КАМЕРАТА КЪМ QR КОДА</div>
+  <div class="qr-res" id="qr-res"></div>
+  <button class="qr-close-btn" onclick="closeQR()">ЗАТВОРИ</button>
+</div>
+
+<!-- LOCK -->
+<div class="screen active" id="s-lock" style="display:flex">
+  <div class="lock-logo">▣ ОТБОР АЛФА ▣</div>
+  <div class="lock-sub">ГЛАВЕН ЩАБ // ТАКТИЧЕСКА СИСТЕМА</div>
+  <div class="lock-div"></div>
+  <div style="font-size:9px;letter-spacing:3px;color:var(--tc-dim)">ВЪВЕДЕТЕ PIN ЗА ДОСТЪП</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pk" ontouchstart="pk(1,event)" onclick="pk(1,event)">1</button>
+    <button class="pk" ontouchstart="pk(2,event)" onclick="pk(2,event)">2</button>
+    <button class="pk" ontouchstart="pk(3,event)" onclick="pk(3,event)">3</button>
+    <button class="pk" ontouchstart="pk(4,event)" onclick="pk(4,event)">4</button>
+    <button class="pk" ontouchstart="pk(5,event)" onclick="pk(5,event)">5</button>
+    <button class="pk" ontouchstart="pk(6,event)" onclick="pk(6,event)">6</button>
+    <button class="pk" ontouchstart="pk(7,event)" onclick="pk(7,event)">7</button>
+    <button class="pk" ontouchstart="pk(8,event)" onclick="pk(8,event)">8</button>
+    <button class="pk" ontouchstart="pk(9,event)" onclick="pk(9,event)">9</button>
+    <button class="pk del" ontouchstart="pdel(event)" onclick="pdel(event)">⌫</button>
+    <button class="pk" ontouchstart="pk(0,event)" onclick="pk(0,event)">0</button>
+    <button class="pk del" ontouchstart="pclr(event)" onclick="pclr(event)">C</button>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+  <div style="font-size:8px;letter-spacing:2px;color:#111">PIN: 1234</div>
+</div>
+
+<!-- WAIT -->
+<div class="screen" id="s-wait">
+  <div class="hq-logo">▣ ОТБОР АЛФА ▣</div>
+  <div class="hq-sub">ГЛАВЕН ЩАБ // ТАКТИЧЕСКА СИСТЕМА</div>
+  <div class="w-div"></div>
+  <div id="src-ind" class="src-ind"></div>
+  <div style="font-size:10px;letter-spacing:4px;color:var(--tc-dim);text-align:center">// НАСТРОЙКИ //</div>
+  <div class="srow">
+    <div class="sg"><div class="sg-lbl">// ТИП МИСИЯ</div>
+      <select id="mType">
+        <option value="assault_defend">ЩУРМ / ОТБРАНА</option>
+        <option value="capture_protect">ПРЕВЗЕМАНЕ / ЗАЩИТА</option>
+        <option value="hostage_rescue">ЗАЛОЖНИК: ОСВОБОДИ / ЗАДРЪЖ</option>
+        <option value="bomb_defuse">БОМБА: СЛОЖИ / НЕУТРАЛИЗИРАЙ</option>
+        <option value="vip_hunt">VIP: ЕСКОРТИРАЙ / ЕЛИМИНИРАЙ</option>
+        <option value="intel_steal">ДОКУМЕНТИ: ОТКРАДНИ / ЗАЩИТИ</option>
+        <option value="supply_raid">СКЛАД: ПЛЯЧКОСАЙ / ОХРАНЯВАЙ</option>
+        <option value="random">СЛУЧАЙНА МИСИЯ</option>
+      </select>
+    </div>
+    <div class="sg"><div class="sg-lbl">// НИВО ЗАПЛАХА</div>
+      <select id="mThreat">
+        <option value="green">ЗЕЛЕНА - ТРЕНИРОВКА</option>
+        <option value="yellow">ЖЪЛТА - УМЕРЕНА</option>
+        <option value="orange" selected>ОРАНЖЕВА - ВИСОКА</option>
+        <option value="red">ЧЕРВЕНА - КРИТИЧНА</option>
+      </select>
+    </div>
+  </div>
+  <button class="mbtn" id="btnAI" onclick="startAI()">ЩАБ ПРОТОКОЛ: ГЕНЕРИРАЙ</button>
+  <div style="font-size:9px;letter-spacing:3px;color:rgba(0,150,0,.3)">— или —</div>
+  <button class="mbtn sec" onclick="openPick()">ИЗПОЛЗВАЙ МОЙ СЦЕНАРИЙ</button>
+  <button class="mbtn sec" onclick="goSettings()">НАСТРОЙКИ НА МИСИЯТА</button>
+  <div class="st-lbl" id="stLbl">ГОТОВ ЗА МИСИЯ</div>
+</div>
+
+<!-- PICK -->
+<div class="screen" id="s-pick">
+  <div class="dark-topbar">
+    <button class="dark-back" onclick="showScreen('s-wait')">НАЗАД</button>
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;color:#555">ИЗБОР НА СЦЕНАРИЙ</div>
+    <div style="font-size:9px;color:#222">ГЩ</div>
+  </div>
+  <div class="tc">
+    <div class="set-title">ИЗБЕРЕТЕ СЦЕНАРИЙ ЗА ИГРА</div>
+    <div id="pick-list"></div>
+    <div style="height:10px"></div>
+    <button class="mbtn" id="pick-go" onclick="confirmPick()" disabled style="opacity:.35;cursor:not-allowed">ЗАРЕДЕТЕ СЦЕНАРИЯ</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="s-settings">
+  <div class="dark-topbar">
+    <button class="dark-back" onclick="showScreen('s-wait')">НАЗАД</button>
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;color:#555">НАСТРОЙКИ</div>
+    <div style="font-size:9px;color:#222">ОТБОР АЛФА</div>
+  </div>
+  <div class="tc">
+    <div class="set-title">КОНФИГУРАЦИЯ НА МИСИЯТА</div>
+    <div class="esec">
+      <div class="esec-hdr">ПРОМЯНА НА PIN</div>
+      <div class="esec-body">
+        <div class="frow"><div class="flbl">НОВ PIN (4 цифри)</div><input type="password" id="new-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="****"></div>
+        <button class="add-row-btn" onclick="savePin()">ЗАПАЗИ PIN</button>
+      </div>
+    </div>
+    <div class="esec">
+      <div class="esec-hdr"><span>ЗАДАЧИ С QR / РЪЧНО ОТКЛЮЧВАНЕ</span><button class="add-row-btn" style="margin:0;padding:3px 8px;font-size:9px" onclick="addTaskRow()">+ ДОБАВИ</button></div>
+      <div class="esec-body"><div id="task-ed"></div><div style="font-size:9px;color:#222;letter-spacing:1px;margin-top:4px">Оставете QR полето празно за ръчно отключване</div></div>
+    </div>
+    <div class="esec">
+      <div class="esec-hdr"><span>ИЗВЪНРЕДНИ СЪОБЩЕНИЯ</span><button class="add-row-btn" style="margin:0;padding:3px 8px;font-size:9px" onclick="addMsgRow()">+ ДОБАВИ</button></div>
+      <div class="esec-body"><div id="msg-ed"></div></div>
+    </div>
+    <div id="set-notice" class="notice" style="display:none"></div>
+    <button class="save-settings-btn" onclick="saveSettings()">ЗАПАЗИ НАСТРОЙКИТЕ</button>
+    <!-- SCENARIO EDITOR -->
+    <div class="esec" style="margin-top:4px">
+      <div class="ed-sec-hdr">МОИ СЦЕНАРИИ <span id="sc-count" style="color:#333">(0)</span></div>
+      <div style="padding:10px 12px;background:rgba(4,4,4,.9)">
+        <div id="sc-list"><div class="no-items" style="padding:16px">НЯМА ЗАПАЗЕНИ СЦЕНАРИИ</div></div>
+      </div>
+    </div>
+    <button class="save-settings-btn" onclick="goEditor()" style="border-color:#555;color:#777;text-shadow:none;margin-top:-4px">+ СЪЗДАЙ НОВ СЦЕНАРИЙ</button>
+
+  </div>
+</div>
+
+<!-- MISSION -->
+<div class="screen" id="s-mission">
+  <div class="topbar">
+    <div class="tb-team">▣ ОТБОР АЛФА</div>
+    <div class="tb-clk" id="clk">00:00:00</div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="tab-brief" onclick="switchTab('brief')">БРИФИНГ</div>
+    <div class="nav-tab" id="tab-tasks" onclick="switchTab('tasks')">ЗАДАЧИ<span class="badge" id="badge-tasks" style="display:none">!</span></div>
+    <div class="nav-tab" id="tab-msgs" onclick="switchTab('msgs')">СЪОБЩЕНИЯ<span class="badge" id="badge-msgs" style="display:none">0</span></div>
+  </div>
+  <div class="tc">
+    <div class="tab-body active" id="tb-brief">
+      <div class="txhdr">
+        <div class="tx-from">ГЛАВЕН ЩАБ → ОТБОР АЛФА</div>
+        <div class="cls-badge" id="m-cls">СЕКРЕТНО</div>
+        <span id="m-cb" class="cust-badge" style="display:none">МОЙ СЦЕНАРИЙ</span>
+        <div class="tx-op" id="m-op">ОПЕРАЦИЯ: --</div>
+        <div class="tx-meta">
+          <div class="tx-mi"><div class="lbl">КОД</div><div class="val" id="m-code">--</div></div>
+          <div class="tx-mi"><div class="lbl">РОЛЯ</div><div class="val" id="m-role">--</div></div>
+          <div class="tx-mi"><div class="lbl">ЧАС</div><div class="val" id="m-time">--</div></div>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="m-prog"></div></div>
+      </div>
+      <div class="conf-ban"><div style="font-size:18px">⚔</div><div id="m-warn">ПРЯК КОНФЛИКТ С ОТБОР БРАВО</div></div>
+      <div class="card"><div class="card-hdr">БРИФИНГ ОТ КОМАНДВАЩИЯ</div><div class="card-body"><div class="mtext" id="m-brief"></div></div></div>
+      <div class="two-col">
+        <div class="card"><div class="card-hdr">ЗАДАЧИ</div><div class="card-body"><ul class="obj-list" id="m-objs"></ul></div></div>
+        <div class="card"><div class="card-hdr">РАЗУЗНАВАНЕ</div><div class="card-body" id="m-intel"></div></div>
+      </div>
+      <div class="card"><div class="card-hdr">ТАЙМЕР</div>
+        <div class="cdw"><div class="cd-lbl">ОСТАВАЩО ОПЕРАТИВНО ВРЕМЕ</div><div class="cdd" id="cd">00:00:00</div></div>
+      </div>
+    </div>
+    <div class="tab-body" id="tb-tasks"><div id="tasks-list"></div><div class="no-items" id="tasks-empty" style="display:none">НЯМА КОНФИГУРИРАНИ ЗАДАЧИ<br><span style="font-size:9px;color:#1a1a1a">Добавете в Настройки</span></div></div>
+    <div class="tab-body" id="tb-msgs"><div id="msgs-list"></div><div class="no-items" id="msgs-empty">НЯМА СЪОБЩЕНИЯ</div></div>
+  </div>
+  <div style="padding:0 12px 12px">
+    <button class="mbtn sec" style="max-width:100%;margin-top:0" onclick="showScreen('s-wait')">⟳ ГЕНЕРИРАЙ НОВА МИСИЯ</button>
+  </div>
+  <div class="footer">ГЩ // ОТБОР АЛФА // КРИПТИРАН КАНАЛ</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js">
+// ── SCENARIO EDITOR ──
+var editIdx=-1;
+var LSS2="gsh_sc";
+function lsScenarios(){try{var d=localStorage.getItem(LSS2);return d?JSON.parse(d):[];}catch(e){return[];}}
+function saveScenarios(arr){try{localStorage.setItem(LSS2,JSON.stringify(arr));}catch(e){}}
+
+function goEditor(idx){
+  editIdx=(idx===undefined?-1:idx);
+  clearEditor();
+  if(editIdx>=0){
+    var sc=lsScenarios()[editIdx];
+    if(sc){
+      document.getElementById("ed-opname").value=sc.opName||"";
+      document.getElementById("ed-dur").value=sc.duration||35;
+      document.getElementById("ed-threat").value=sc.threat||"orange";
+      document.getElementById("ed-a-role").value=sc.alfa.role||"";
+      document.getElementById("ed-a-brief").value=sc.alfa.briefing||"";
+      document.getElementById("ed-a-warn").value=sc.alfa.conflictWarning||"";
+      document.getElementById("ed-b-role").value=sc.bravo.role||"";
+      document.getElementById("ed-b-brief").value=sc.bravo.briefing||"";
+      document.getElementById("ed-b-warn").value=sc.bravo.conflictWarning||"";
+      (sc.alfa.objectives||[]).forEach(function(v){addEdRow("ed-a-objs","Задача...",v);});
+      (sc.alfa.intel||[]).forEach(function(v){addEdRow("ed-a-intel","Разузнавателна информация...",v);});
+      (sc.bravo.objectives||[]).forEach(function(v){addEdRow("ed-b-objs","Задача...",v);});
+      (sc.bravo.intel||[]).forEach(function(v){addEdRow("ed-b-intel","Разузнавателна информация...",v);});
+      document.getElementById("ed-title").textContent="РЕДАКТИРАНЕ";
+    }
+  } else {
+    document.getElementById("ed-title").textContent="НОВ СЦЕНАРИЙ";
+  }
+  showScreen("s-editor");
+}
+
+function clearEditor(){
+  ["ed-opname","ed-dur","ed-a-role","ed-a-brief","ed-a-warn","ed-b-role","ed-b-brief","ed-b-warn"].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value="";
+  });
+  document.getElementById("ed-threat").value="orange";
+  ["ed-a-objs","ed-a-intel","ed-b-objs","ed-b-intel"].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.innerHTML="";
+  });
+  document.getElementById("ed-notice").style.display="none";
+}
+
+function addEdRow(containerId, placeholder, value){
+  var c=document.getElementById(containerId);
+  if(!c)return;
+  var d=document.createElement("div");
+  d.className="row-wrap";
+  d.style.position="relative";
+  d.innerHTML="<button class='del-row' onclick='this.parentElement.remove()'>X</button>"+
+    "<input type='text' placeholder='"+placeholder+"' value='"+(value||"")+"'>";
+  c.appendChild(d);
+}
+
+function getEdList(containerId){
+  return [].slice.call(document.querySelectorAll("#"+containerId+" input")).map(function(i){return i.value.trim();}).filter(Boolean);
+}
+
+function saveScenario(){
+  var opName=document.getElementById("ed-opname").value.trim();
+  var aBrief=document.getElementById("ed-a-brief").value.trim();
+  var bBrief=document.getElementById("ed-b-brief").value.trim();
+  if(!opName||!aBrief||!bBrief){
+    showNotice("ed-notice","err","Попълнете: Име + Брифинг за Алфа + Брифинг за Браво");
+    return;
+  }
+  var sc={
+    opName:opName,
+    duration:parseInt(document.getElementById("ed-dur").value)||35,
+    threat:document.getElementById("ed-threat").value,
+    alfa:{
+      role:document.getElementById("ed-a-role").value.trim()||"АЛФА",
+      briefing:aBrief,
+      objectives:getEdList("ed-a-objs"),
+      intel:getEdList("ed-a-intel"),
+      conflictWarning:document.getElementById("ed-a-warn").value.trim()
+    },
+    bravo:{
+      role:document.getElementById("ed-b-role").value.trim()||"БРАВО",
+      briefing:bBrief,
+      objectives:getEdList("ed-b-objs"),
+      intel:getEdList("ed-b-intel"),
+      conflictWarning:document.getElementById("ed-b-warn").value.trim()
+    }
+  };
+  var arr=lsScenarios();
+  if(editIdx>=0){arr[editIdx]=sc;}else{arr.push(sc);}
+  saveScenarios(arr);
+  showNotice("ed-notice","ok","Сценарият е запазен успешно!");
+  setTimeout(function(){showScreen("s-settings");loadScList();},1200);
+}
+
+function loadScList(){
+  var arr=lsScenarios();
+  var cnt=document.getElementById("sc-count");
+  if(cnt)cnt.textContent="("+arr.length+")";
+  var el=document.getElementById("sc-list");
+  if(!el)return;
+  if(!arr.length){el.innerHTML="<div class='no-items' style='padding:16px'>НЯМА ЗАПАЗЕНИ СЦЕНАРИИ</div>";return;}
+  el.innerHTML=arr.map(function(sc,i){
+    return "<div class='sc-item'>"+
+      "<div style='flex:1'>"+
+        "<div class='sc-item-name'>"+sc.opName+"</div>"+
+        "<div class='sc-item-roles'>АЛФА: "+(sc.alfa.role||"???")+" | БРАВО: "+(sc.bravo.role||"???")+" | "+(sc.duration||"?")+" мин.</div>"+
+      "</div>"+
+      "<button class='sc-btn e' onclick='goEditor("+i+")'>✎</button>"+
+      "<button class='sc-btn d' onclick='delScenario("+i+")'>✕</button>"+
+    "</div>";
+  }).join("");
+}
+
+function delScenario(idx){
+  var arr=lsScenarios();
+  arr.splice(idx,1);
+  saveScenarios(arr);
+  loadScList();
+}
+
+</script>
+<script>
+var TEAM="alfa",LS="gsh_alfa_",LSS="gsh_sc";
+var scenarios=[],mTasks=[],mMsgs=[],unread=0,cdInt=null,cdSecs=0,qrStream=null,qrInt=null,qrCb=null;
+var currentPin="1234";
+
+function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v));}catch(e){}}
+function lsShared(){try{var d=localStorage.getItem(LSS);return d?JSON.parse(d):[];}catch(e){return[];}}
+function pad(n){return String(n).padStart(2,"0");}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function genCode(){var L="ABCDEFGHJKLMNPQRSTUVWXYZ",N="0123456789";return[0,1,2].map(function(){return L[Math.floor(Math.random()*L.length)]}).join("")+"-"+[0,1,2,3].map(function(){return N[Math.floor(Math.random()*N.length)]}).join("");}
+
+// CLOCK
+setInterval(function(){
+  var n=new Date(),el=document.getElementById("clk");
+  if(el)el.textContent=pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());
+},1000);
+
+// SCREENS
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+// PIN
+var pinBuf="",lastPinEvt=0;
+window.addEventListener("load",function(){ currentPin=lsGet("pin")||"1234"; if(sessionStorage.getItem("unlocked")==="1")showScreen("s-wait"); });
+function pk(n,e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var now=Date.now();if(now-lastPinEvt<300){return;}lastPinEvt=now;
+  if(pinBuf.length>=4)return;
+  pinBuf+=String(n);
+  updDots();
+  if(pinBuf.length===4)setTimeout(checkPin,150);
+}
+function pdel(e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var now=Date.now();if(now-lastPinEvt<300){return;}lastPinEvt=now;
+  pinBuf=pinBuf.slice(0,-1);updDots();
+}
+function pclr(e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var now=Date.now();if(now-lastPinEvt<300){return;}lastPinEvt=now;
+  pinBuf="";updDots();
+  document.getElementById("pin-err").textContent="";
+}
+function updDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById("pd"+i);
+    if(d)d.className="pin-dot"+(i<pinBuf.length?" on":"");
+  }
+}
+function checkPin(){
+  var saved=lsGet("pin")||"1234";
+  if(pinBuf===saved){
+    pinBuf="";updDots();
+    document.getElementById("pin-err").textContent="";
+    sessionStorage.setItem("unlocked","1");
+    showScreen("s-wait");
+  }else{
+    document.getElementById("pin-err").textContent="ГРЕШЕН PIN - ОПИТАЙТЕ ОТНОВО";
+    pinBuf="";updDots();
+  }
+}
+function savePin(){
+  var v=document.getElementById("new-pin").value.trim();
+  if(v.length!==4||isNaN(Number(v))){showNotice("set-notice","err","PIN трябва да е 4 цифри");return;}
+  lsSet("pin",v);currentPin=v;document.getElementById("new-pin").value="";
+  showNotice("set-notice","ok","PIN е сменен успешно");
+}
+
+// TABS
+function switchTab(t){
+  ["brief","tasks","msgs"].forEach(function(x){
+    document.getElementById("tb-"+x).classList.remove("active");
+    document.getElementById("tab-"+x).classList.remove("active");
+  });
+  document.getElementById("tb-"+t).classList.add("active");
+  document.getElementById("tab-"+t).classList.add("active");
+  if(t==="msgs"){unread=0;renderMsgBadge();mMsgs.forEach(function(m){m.read=true;});lsSet("msgs",mMsgs);}
+  if(t==="tasks")renderTasks();
+}
+
+// COUNTDOWN
+function startCD(mins){
+  clearInterval(cdInt);cdSecs=mins*60;
+  cdInt=setInterval(function(){
+    cdSecs=Math.max(0,--cdSecs);
+    var el=document.getElementById("cd");
+    el.textContent=pad(Math.floor(cdSecs/3600))+":"+pad(Math.floor((cdSecs%3600)/60))+":"+pad(cdSecs%60);
+    el.className="cdd"+(cdSecs<120?" urgent":"");
+  },1000);
+}
+
+// TYPEWRITER
+function tw(id,text,speed){
+  return new Promise(function(res){
+    var el=document.getElementById(id);el.innerHTML="";el.classList.add("loading");
+    var i=0;var iv=setInterval(function(){
+      if(i<text.length){el.innerHTML=text.substring(0,++i);}
+      else{el.classList.remove("loading");clearInterval(iv);res();}
+    },speed);
+  });
+}
+
+// POPULATE
+async function populate(data,opName,threat,dur,isCustom){
+  var cls={green:"ЗА СЛУЖЕБНО ПОЛЗВАНЕ",yellow:"ПОВЕРИТЕЛНО",orange:"СЕКРЕТНО",red:"СТРОГО СЕКРЕТНО"};
+  document.getElementById("m-cls").textContent=cls[threat]||"СЕКРЕТНО";
+  document.getElementById("m-op").textContent="ОПЕРАЦИЯ: "+opName;
+  document.getElementById("m-code").textContent=genCode();
+  document.getElementById("m-role").textContent=data.role||TEAM;
+  document.getElementById("m-time").textContent=new Date().toLocaleTimeString("bg-BG",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("m-warn").textContent=data.conflictWarning||"ПРЯК КОНФЛИКТ С ОТБОР БРАВО";
+  document.getElementById("m-cb").style.display=isCustom?"inline-block":"none";
+  var p=0,pg=document.getElementById("m-prog");
+  var pi=setInterval(function(){p=Math.min(p+3,100);pg.style.width=p+"%";if(p>=100)clearInterval(pi);},20);
+  await tw("m-brief",data.briefing||"БРИФИНГЪТ Е НЕДОСТЪПЕН",isCustom?6:14);
+  var ol=document.getElementById("m-objs");ol.innerHTML="";
+  (data.objectives||[]).forEach(function(obj,i){
+    var li=document.createElement("li");li.className="oi";
+    var pc=i===0?"p":i<2?"s":"o",pl=i===0?"ГЛАВ":i<2?"ВТОР":"БОН";
+    li.innerHTML="<span class='on'>["+pad(i+1)+"]</span><span class='pb "+pc+"'>"+pl+"</span><span>"+obj+"</span>";
+    ol.appendChild(li);
+  });
+  document.getElementById("m-intel").innerHTML=(data.intel||[]).map(function(x){return"<div class='it'><span style='opacity:.5;min-width:14px'>▷</span><span>"+x+"</span></div>";}).join("");
+  showScreen("s-mission");
+  startCD(parseInt(dur)||30);
+  loadMissionConfig();
+  renderTasks();renderMsgs();
+}
+
+// AI
+function buildPrompt(type,threat){
+  var types={assault_defend:"щурм и отбрана",capture_protect:"превземане и защита",hostage_rescue:"заложник освобождаване vs задържане",bomb_defuse:"бомба поставяне vs неутрализиране",vip_hunt:"VIP ескорт vs прихващане",intel_steal:"кражба документи vs охрана",supply_raid:"плячкосване склад vs охрана",random:"случаен противоположен"};
+  var durs={green:"20-25",yellow:"25-35",orange:"30-45",red:"40-60"};
+  var terrains=["изоставена фабрика","гора с бункери","пристанищен склад","разрушен хотел","военна база","железопътна гара","подземни тунели","нефтена рафинерия","планинска крепост","изоставено село"];
+  var objectives_a=["унищожи радиостанцията","открадни документите от трезора","вземи заложника живо","активирай взривното устройство","ескортирай VIP до евакуационната точка","постави маяка за координати","завземи командния пост","унищожи вражеските припаси"];
+  var objectives_b=["задържи заложника на позиция","защити трезора с документите","неутрализирай взривното устройство","прихвани VIP преди евакуация","защити радиостанцията","унищожи маяка преди активиране","задържи командния пост","охранявай складовете с припаси"];
+  var rand=function(arr){return arr[Math.floor(Math.random()*arr.length)];};
+  var terrain=rand(terrains);
+  var seed=Math.floor(Math.random()*9000)+1000;
+  var actualType=type==="random"?rand(Object.keys(types)):type;
+  return "Главен Щаб. Генерирай УНИКАЛНА AIRSOFT мисия НА БЪЛГАРСКИ (seed:"+seed+") за ДВА ОТБОРА. Тип: "+(types[actualType]||types.assault_defend)+". Заплаха: "+threat+". Терен: "+terrain+". Основна цел на Алфа: "+rand(objectives_a)+". Основна цел на Браво: "+rand(objectives_b)+". Двата отбора се борят около ЕДИН общ обект на терена. Генерирай РАЗЛИЧНО и КРЕАТИВНО съдържание — различни имена на операции, различни детайли, различни тактически ситуации. Отговори САМО с валиден JSON без markdown: {\"opName\":\"...\"," +
+    "\"alfa\":{\"role\":\"...\"," +
+    "\"briefing\":\"3-4 изречения за Алфа\"," +
+    "\"objectives\":[\"задача 1\",\"задача 2\",\"задача 3\"]," +
+    "\"intel\":[\"данни 1\",\"данни 2\",\"данни 3\"]," +
+    "\"conflictWarning\":\"1 изречение\"}," +
+    "\"bravo\":{\"role\":\"...\"," +
+    "\"briefing\":\"3-4 изречения за Браво\"," +
+    "\"objectives\":[\"задача 1\",\"задача 2\",\"задача 3\"]," +
+    "\"intel\":[\"данни 1\",\"данни 2\",\"данни 3\"]," +
+    "\"conflictWarning\":\"1 изречение\"}," +
+    "\"duration\":число_между_"+durs[threat]+"}";
+}
+
+function fallback(){return{opName:"СТОМАНЕН ВЯТЪР",alfa:{role:"НАПАДЕНИЕ",briefing:"Внимание Отбор Алфа! Разузнаването потвърди, че ресурси са съхранени в централния склад. Проникнете, неутрализирайте охраната и завземете обекта.",objectives:["Проникнете от западния фланг","Неутрализирайте охраната","Вдигнете зеления флаг","Осигурете изход"],intel:["2 снайперски позиции на покрива","Задния проход е безопасен","Подкрепление след 20 мин."],conflictWarning:"Отбор Браво охранява склада."},bravo:{role:"ОТБРАНА",briefing:"Внимание Отбор Браво! Предстои атака срещу склада ни. Укрепете позициите и задържете периметъра.",objectives:["Укрепете снайперски позиции","Патрулирайте западно","Задържте командния пост","Унищожете вражеското радио"],intel:["Атака от запад","Разузнавачи напред","Резервите в северния бункер"],conflictWarning:"Отбор Алфа ще се опита да проникне."},duration:35};}
+
+// ── MISSION DATABASE ──
+var TERRAINS=["изоставена фабрика","гора с бункери","пристанищен склад","разрушен хотел","военна база","железопътна гара","подземни тунели","нефтена рафинерия","планинска крепост","изоставено село","промишлен комплекс","стара болница","летище","корабостроителница","мини"];
+var OP_NAMES=["СТОМАНЕН ВЯТЪР","ЧЕРНА МЕЧКА","СТРЕМИТЕЛЕН ОРЕЛ","ЖЕЛЯЗНА БУРЯ","ТЪМНА ГОРА","ПРИЗРАЧЕН ВОЙ","МЪЛНИЯ-7","КАМЕННА РЪКА","СИВАТА ВЪЛНА","ОГНЕН ХОРИЗОНТ","БЕЗМЪЛВНА НОЩ","ПОЛЯРНА ЛИСИЦА","ЗИМНА МИСТЕРИЯ","ЧЕРЕН СКОРПИОН","ТИХАТА СТРЕЛА","ДВОЙНА СЯНКА","СТОМАНЕН ПРИЗРАК","СЕВЕРЕН ЩИТ","ЧЕРВЕНА ЗОРА","ТЪМНА ВОДА","СРЕБЪРНА КУРШУМ","ЖЕЛЕЗЕН ЮМРУК","ПЕПЕЛЕН ФЕНИКС","ВЪЛЧА НОЩ","КОБРА-9"];
+
+function rnd(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function rndInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+var SCENARIOS=[
+{alfaRole:"НАПАДЕНИЕ",bravoRole:"ОТБРАНА",
+ alfaBriefs:["Отбор Алфа, разузнаването потвърди вражеска позиция в {T}. Задачата ви е да проникнете от западния фланг, неутрализирате охраната и завземете командния пост. Времето е критично.",
+             "Вниманието ви се насочва към {T}. Противникът е укрепил позициите си, но има слаб фланг от север. Пробийте защитата и установете контрол над обекта.",
+             "Получавате заповед за незабавен щурм на {T}. Проникнете тихо, действайте бързо и завземете стратегическия обект преди пристигането на подкрепление."],
+ bravoBriefs:["Отбор Браво, получихме данни за предстояща атака срещу позициите в {T}. Укрепете периметъра и неутрализирайте нападателите преди да достигнат командния пост.",
+              "Вражески отряд се движи към {T}. Задачата ви е да задържите обекта на всяка цена. Укрепете входовете и отблъснете атаката.",
+              "Защитата на {T} е ваш приоритет. Противникът планира щурм от западно направление. Подгответе отбранителни позиции."],
+ alfaObjs:[["Проникнете в периметъра от западния фланг","Неутрализирайте охраната на командния пост","Вдигнете зеления флаг на позиция Алфа","Осигурете евакуационен маршрут"],
+           ["Пробийте северния периметър","Унищожете вражеската комуникационна система","Завземете главния вход","Задържте позицията 10 минути"],
+           ["Влезте без да вдигате тревога","Неутрализирайте снайпериста на покрива","Завземете командния пост","Сигнализирайте за успех"]],
+ bravoObjs:[["Укрепете снайперски позиции на покрива","Патрулирайте западния периметър","Задържте командния пост до края","Унищожете радиото на противника"],
+            ["Поставете бариери на главния вход","Задържте позиция Браво-7","Неутрализирайте нападателите при периметъра","Повикайте подкрепление при нужда"],
+            ["Разпределете отряда на 3 позиции","Задържте видимост към западния сектор","Не позволявайте достъп до командния пост","Докладвайте при всеки контакт"]],
+ alfaIntel:[["Охраната има 2 снайперски позиции на покрива","Задният проход е по-слабо охраняван","Подкрепление пристига след 20 минути"],
+            ["Противникът има камери от юг","Северният вход е без охрана след 15:00","Има минирана зона пред главния вход"],
+            ["Снайперист на позиция Браво-3","Патрулът минава на всеки 7 минути","Командирът носи червена маркировка"]],
+ bravoIntel:[["Противникът планира атака от запад","Очаква се разузнавателна група напред","Резервите са в северния бункер"],
+             ["Атакуващият отряд е 6-8 души","Те имат димни гранати","Главната цел е командният пост"],
+             ["Противникът е наблюдавал позициите ни","Очакваме диверсия преди основната атака","Пазете южния фланг"]],
+ alfaWarn:["Отбор Браво охранява обекта и ще пречи на проникването","Браво има снайперски позиции — бъдете внимателни","Очаквайте активна съпротива при всеки опит за проникване"],
+ bravoWarn:["Отбор Алфа ще се опита да проникне от запад","Алфа е обучен отряд — не подценявайте атаката","Очаквайте бърз и координиран щурм"]},
+
+{alfaRole:"ОСВОБОЖДАВАНЕ",bravoRole:"ЗАДЪРЖАНЕ",
+ alfaBriefs:["Отбор Алфа, имаме заложник задържан в {T}. Проникнете, намерете и освободете заложника без да го наранявате. Противникът е въоръжен.",
+             "Получихме сигнал от заложника — той е жив в {T}. Проникнете тихо, неутрализирайте охраната и изведете заложника безопасно.",
+             "Критична ситуация — заложник е задържан в {T}. Действайте бързо преди противникът да го премести."],
+ bravoBriefs:["Отбор Браво, задържаният е ценен актив. Пазете го в {T} и не позволявайте освобождаване. Укрепете позициите около задържащия пункт.",
+              "Вашата задача е да задържите заложника в {T}. Очаквайте опит за освобождаване.",
+              "Отбор Браво охранява задържан в {T}. При опит за освобождаване — неутрализирайте нападателите."],
+ alfaObjs:[["Проникнете в {T} без да вдигате тревога","Намерете и идентифицирайте заложника","Неутрализирайте охраната около заложника","Изведете заложника до евакуационната точка"],
+           ["Влезте от северния вход","Намерете заложника в 10 минути","Осигурете безопасен коридор","Докладвайте успешно освобождаване"]],
+ bravoObjs:[["Поставете охрана около задържащия пункт","Не позволявайте никой да се доближи до заложника","При тревога — преместете заложника","Задържте обекта до края"],
+            ["Патрулирайте периметъра на 5 минути","Пазете заложника под контрол","Блокирайте всички входове","Докладвайте при подозрителен контакт"]],
+ alfaIntel:[["Заложникът се държи на втория етаж","Охраната е 3-4 души","Има алармена система — действайте тихо"],
+            ["Заложникът е ранен — нужна е бърза евакуация","Противникът планира преместване след 15 минути","Има слепи точки на камерите от изток"]],
+ bravoIntel:[["Освобождаващият отряд е максимум 4 души","Те ще се опитат да влязат тихо","Главната цел е вторият етаж"],
+             ["Очаквайте диверсия за отвличане на вниманието","Противникът познава плана на сградата","Пазете коридора към заложника"]],
+ alfaWarn:["Браво охранява заложника с въоръжена охрана — действайте тихо","При тревога Браво ще премести заложника","Браво ще постави засади по евакуационните маршрути"],
+ bravoWarn:["Алфа планира тихо проникване — засилете охраната","Алфа ще се опита да отвлече вниманието преди акцията","Очаквайте бърза акция за освобождаване"]},
+
+{alfaRole:"ВЗРИВЯВАНЕ",bravoRole:"НЕУТРАЛИЗАЦИЯ",
+ alfaBriefs:["Отбор Алфа, поставете взривно устройство на ключова позиция в {T} и го активирайте. Противникът ще се опита да ви спре.",
+             "Мисията е критична — поставете устройството в {T} преди противникът да разбере. Имате ограничено време след активиране.",
+             "Доставете и активирайте устройството в {T}. Браво ще се опита да го неутрализира — не им давайте шанс."],
+ bravoBriefs:["Отбор Браво, засечен е вражески отряд с взривно устройство към {T}. Намерете и неутрализирайте устройството преди активиране.",
+              "Критична заплаха — противникът планира да постави бомба в {T}. Предотвратете това или деактивирайте след поставяне.",
+              "Защитете {T} от взривяване. Намерете и деактивирайте устройството — времето е малко."],
+ alfaObjs:[["Достигнете целевата позиция в {T}","Поставете устройството на обозначеното място","Активирайте и се отдалечете","Задръжте позицията докато устройството е активно"],
+           ["Преминете охраната без да бъдете засечени","Поставете устройството на позиция Алфа-7","Активирайте и изчакайте потвърждение","Евакуирайте се по северния маршрут"]],
+ bravoObjs:[["Патрулирайте целевите позиции","Ако намерите устройството — незабавно го неутрализирайте","Задържте нападателите далеч от целевата зона","Ако е активирано — деактивирайте го преди края"],
+            ["Разделете се на двойки и претърсете {T}","Неутрализирайте носителя на устройството","Ако е поставено — намерете го бързо","Докладвайте при намиране"]],
+ alfaIntel:[["Целевата позиция е в централния сектор","Имате 3 минути след активиране","Браво не знае точното място"],
+            ["Оптималната позиция е близо до командния пост","Браво обискира периметъра — действайте бързо","Устройството се активира с код 1-1-4-2"]],
+ bravoIntel:[["Противникът носи устройството в раницата","Те ще се опитат да достигнат централния сектор","Имате 3 минути за деактивиране след активиране"],
+             ["Устройството е малко и сиво","Противникът ще се раздели — следете и двете групи","Деактивирането изисква физически достъп"]],
+ alfaWarn:["Браво ще се опита да намери и деактивира устройството","Браво патрулира целевите позиции — нужна е скорост","Очаквайте засада по маршрута"],
+ bravoWarn:["Алфа ще се раздели за да ви объркат","Алфа може да използва димка за прикритие","Действайте бързо — Алфа е обучен за скоростно поставяне"]},
+
+{alfaRole:"VIP ЕСКОРТ",bravoRole:"ПРИХВАЩАНЕ",
+ alfaBriefs:["Отбор Алфа, ескортирайте VIP от {T} до евакуационната точка. Противникът ще се опита да го прихване — пазете го с живота си.",
+             "VIP трябва да бъде изведен невредимо от {T}. Осигурете ескорт по одобрения маршрут — внимавайте за засади.",
+             "Критична мисия — ескортирайте VIP през {T}. Браво ще се опита да блокира маршрута."],
+ bravoBriefs:["Отбор Браво, противникът ескортира VIP през {T}. Прихванете го преди да достигне евакуационната точка.",
+              "VIP се движи към евакуация. Блокирайте маршрута и прихванете VIP в {T}.",
+              "Засечен е VIP ескорт в {T}. Елиминирайте ескорта и прихванете VIP."],
+ alfaObjs:[["Вземете VIP от началната точка","Придвижете се по одобрения маршрут","Избягвайте контакт с противника","Достигнете евакуационната точка с VIP жив"],
+           ["Осигурете VIP с двама охранители","Проверете маршрута за засади","При контакт — VIP остава в центъра","Евакуирайте се по алтернативния маршрут при нужда"]],
+ bravoObjs:[["Поставете засада по основния маршрут","Блокирайте алтернативните маршрути","Прихванете VIP и го задържте","Не позволявайте евакуация"],
+            ["Разузнайте маршрута преди ескорта","Поставете снайперист на ключова позиция","Спрете ескорта при тясното място","Вземете VIP под контрол"]],
+ alfaIntel:[["Маршрутът минава покрай складовата зона","Браво има засади на 2 позиции","Евакуационната точка е на 500м северно"],
+            ["Алтернативният маршрут е по-дълъг но по-безопасен","Браво разполага с 5-6 бойци","VIP е лека ранен — не може да тича"]],
+ bravoIntel:[["Ескортът е 3-4 бойци около VIP","Те ще използват основния маршрут","VIP носи синя жилетка"],
+             ["Ескортът е въоръжен и обучен","Те могат да сменят маршрута","VIP е бавен — това е ваше предимство"]],
+ alfaWarn:["Браво е поставил засади по маршрута","Браво ще се опита да отдели VIP от ескорта","Очаквайте блокиране на евакуационната точка"],
+ bravoWarn:["Алфа ескортира VIP с въоръжена охрана","Алфа може да смени маршрута при контакт","Ескортът е обучен да защитава VIP"]}
+];
+
+function generateMission(type,threat){
+  var sc;
+  var map={assault_defend:0,capture_protect:0,intel_steal:0,supply_raid:0,hostage_rescue:1,bomb_defuse:2,vip_hunt:3};
+  if(type==="random") sc=rnd(SCENARIOS);
+  else sc=SCENARIOS[map[type]!==undefined?map[type]:0]||rnd(SCENARIOS);
+  var T=rnd(TERRAINS);
+  var op=rnd(OP_NAMES);
+  var durs={green:[20,25],yellow:[25,35],orange:[30,45],red:[40,60]};
+  var dr=durs[threat]||durs.orange;
+  var dur=rndInt(dr[0],dr[1]);
+  function f(s){return s.replace(/{T}/g,T);}
+  return{
+    opName:op,
+    alfa:{role:sc.alfaRole,briefing:f(rnd(sc.alfaBriefs)),objectives:rnd(sc.alfaObjs).map(f),intel:rnd(sc.alfaIntel).map(f),conflictWarning:f(rnd(sc.alfaWarn))},
+    bravo:{role:sc.bravoRole,briefing:f(rnd(sc.bravoBriefs)),objectives:rnd(sc.bravoObjs).map(f),intel:rnd(sc.bravoIntel).map(f),conflictWarning:f(rnd(sc.bravoWarn))},
+    duration:dur
+  };
+}
+
+async function startAI(){
+  var btn=document.getElementById("btnAI"),sl=document.getElementById("stLbl");
+  btn.disabled=true;
+  var type=document.getElementById("mType").value,threat=document.getElementById("mThreat").value;
+  var si=document.getElementById("src-ind");si.style.display="block";si.textContent="ЩАБ ПРОТОКОЛ АКТИВЕН";
+  sl.textContent="ГЕНЕРИРАНЕ НА МИСИЯ...";
+  await wait(600);
+  var md=generateMission(type,threat);
+  await populate(md[TEAM],md.opName,threat,md.duration,false);
+  btn.disabled=false;btn.textContent="ЩАБ ПРОТОКОЛ: ГЕНЕРИРАЙ";
+  sl.textContent="ГОТОВ ЗА МИСИЯ";
+}
+
+// PICK
+var pickIdx=null;
+function openPick(){scenarios=lsShared();renderPickList();showScreen("s-pick");}
+function renderPickList(){
+  pickIdx=null;
+  var btn=document.getElementById("pick-go");btn.disabled=true;btn.style.opacity=".35";btn.style.cursor="not-allowed";
+  var el=document.getElementById("pick-list");
+  if(!scenarios.length){el.innerHTML="<div class='no-items'>НЯМА ЗАПАЗЕНИ СЦЕНАРИИ</div>";return;}
+  el.innerHTML=scenarios.map(function(sc,i){
+    return "<div class='pick-item' id='pi"+i+"' onclick='selPick("+i+")'><div><div class='pick-item-name' id='pn"+i+"'>"+(sc.opName||"Без Име")+"</div><div class='pick-item-roles'>АЛФА: "+(sc.alfa&&sc.alfa.role||"???")+" | БРАВО: "+(sc.bravo&&sc.bravo.role||"???")+" | "+(sc.duration||"?")+" мин.</div></div></div>";
+  }).join("");
+}
+function selPick(idx){
+  document.querySelectorAll(".pick-item").forEach(function(e){e.classList.remove("sel");});
+  var el=document.getElementById("pi"+idx);if(el)el.classList.add("sel");
+  pickIdx=idx;
+  var btn=document.getElementById("pick-go");btn.disabled=false;btn.style.opacity="1";btn.style.cursor="pointer";
+}
+async function confirmPick(){
+  if(pickIdx===null)return;
+  var sc=scenarios[pickIdx],threat=sc.threat||"orange";
+  document.getElementById("src-ind").style.display="block";
+  document.getElementById("src-ind").textContent="МОЙ СЦЕНАРИЙ: "+(sc.opName||"Без Име");
+  await populate(sc[TEAM],sc.opName||"ОПЕРАЦИЯ",threat,sc.duration,true);
+}
+
+// SETTINGS
+function goSettings(){loadSettingsUI();showScreen("s-settings");}
+function loadSettingsUI(){
+  var tasks=lsGet("tasks")||[],msgs=lsGet("preset_msgs")||[];
+  var te=document.getElementById("task-ed");te.innerHTML="";
+  tasks.forEach(function(t){addTaskRow(t);});
+  var me=document.getElementById("msg-ed");me.innerHTML="";
+  msgs.forEach(function(m){addMsgRow(m);});
+}
+function addTaskRow(data){
+  data=data||{};
+  var d=document.createElement("div");d.className="row-wrap";
+  d.innerHTML="<button class='del-row' onclick='this.parentElement.remove()'>X</button>"+
+    "<div class='frow'><div class='flbl'>ЗАГЛАВИЕ</div><input type='text' class='t-ttl' placeholder='Проникнете в склада' value='"+(data.title||"")+"'></div>"+
+    "<div class='frow'><div class='flbl'>ОПИСАНИЕ</div><textarea class='t-dsc' rows='2' placeholder='Детайли...'>"+(data.desc||"")+"</textarea></div>"+
+    "<div class='frow'><div class='flbl'>QR КОД (празно = ръчно)</div><input type='text' class='t-qr' placeholder='ZADACHA-1-ALFA' value='"+(data.qrCode||"")+"'></div>";
+  document.getElementById("task-ed").appendChild(d);
+}
+function addMsgRow(data){
+  data=data||{};
+  var d=document.createElement("div");d.className="row-wrap";
+  var typeOpts=["alert","info","order"].map(function(t){
+    return "<option value='"+t+"'"+(data.type===t?" selected":"")+">"+{alert:"ПРЕДУПРЕЖДЕНИЕ",info:"ИНФОРМАЦИЯ",order:"ЗАПОВЕД"}[t]+"</option>";
+  }).join("");
+  d.innerHTML="<button class='del-row' onclick='this.parentElement.remove()'>X</button>"+
+    "<div class='frow'><div class='flbl'>ТИП</div><select class='m-typ'>"+typeOpts+"</select></div>"+
+    "<div class='frow'><div class='flbl'>ТЕКСТ</div><textarea class='m-txt' rows='2' placeholder='Текст...'>"+(data.text||"")+"</textarea></div>"+
+    "<div class='frow'><div class='flbl'>СЛЕД КОЛКО МИНУТИ (0 = веднага)</div><input type='text' class='m-dly' value='"+(data.delay||0)+"' maxlength='3'></div>";
+  document.getElementById("msg-ed").appendChild(d);
+}
+function saveSettings(){
+  var tasks=[].slice.call(document.querySelectorAll("#task-ed .row-wrap")).map(function(r){
+    return{title:r.querySelector(".t-ttl").value.trim(),desc:r.querySelector(".t-dsc").value.trim(),qrCode:r.querySelector(".t-qr").value.trim(),done:false};
+  }).filter(function(t){return t.title;});
+  var msgs=[].slice.call(document.querySelectorAll("#msg-ed .row-wrap")).map(function(r){
+    return{type:r.querySelector(".m-typ").value,text:r.querySelector(".m-txt").value.trim(),delay:parseInt(r.querySelector(".m-dly").value)||0,sent:false,read:false};
+  }).filter(function(m){return m.text;});
+  lsSet("tasks",tasks);lsSet("preset_msgs",msgs);
+  showNotice("set-notice","ok","Настройките са запазени успешно");
+}
+function loadMissionConfig(){
+  mTasks=(lsGet("tasks")||[]).map(function(t,i){return Object.assign({},t,{done:false});});
+  var presets=lsGet("preset_msgs")||[];
+  mMsgs=presets.map(function(m){return Object.assign({},m,{sent:m.delay===0,read:false});});
+  unread=mMsgs.filter(function(m){return m.sent&&!m.read;}).length;
+  renderMsgBadge();updateTasksBadge();
+  mMsgs.forEach(function(m){
+    if(m.delay>0){
+      setTimeout(function(){m.sent=true;if(!m.read){unread++;renderMsgBadge();showNotif("НОВО СЪОБЩЕНИЕ ОТ ЩАБА!");}  },m.delay*60000);
+    }
+  });
+}
+
+// TASKS
+function renderTasks(){
+  var el=document.getElementById("tasks-list"),emp=document.getElementById("tasks-empty");
+  if(!mTasks.length){el.innerHTML="";emp.style.display="block";return;}
+  emp.style.display="none";
+  el.innerHTML=mTasks.map(function(t,i){
+    var done=t.done,active=!done&&(i===0||mTasks[i-1].done),locked=!done&&!active;
+    var cls=done?"done":active?"active":"locked";
+    var badge=done?"<div class='t-badge done'>ИЗПЪЛНЕНА</div>":locked?"<div class='t-badge locked'>ЗАКЛЮЧЕНА</div>":"";
+    var actions="";
+    if(active){
+      if(t.qrCode){actions="<button class='qr-btn' onclick='openQR("+i+")'>СКАНИРАЙ QR КОД</button>";}
+      else{actions="<button class='unlock-btn' onclick='completeTask("+i+")'>ОТБЕЛЕЖИ КАТО ИЗПЪЛНЕНА</button>";}
+    }
+    return "<div class='task-card "+cls+"'>"+badge+
+      "<div class='t-num "+cls+"'>ЗАДАЧА "+pad(i+1)+" / "+pad(mTasks.length)+(t.qrCode?" // QR":" // РЪЧНО")+"</div>"+
+      "<div class='t-title "+cls+"'>"+(locked?"???":t.title)+"</div>"+
+      (active&&t.desc?"<div class='t-desc'>"+t.desc+"</div>":"")+
+      actions+"</div>";
+  }).join("");
+  updateTasksBadge();
+}
+function completeTask(idx){
+  if(!mTasks[idx])return;
+  mTasks[idx].done=true;
+  renderTasks();
+  var next=mTasks[idx+1];
+  showNotif(next?"НОВА ЗАДАЧА ОТКЛЮЧЕНА: "+next.title:"ВСИЧКИ ЗАДАЧИ ИЗПЪЛНЕНИ!");
+}
+function updateTasksBadge(){
+  var hasActive=mTasks.some(function(t,i){return!t.done&&(i===0||mTasks[i-1].done);});
+  var b=document.getElementById("badge-tasks");
+  b.style.display=hasActive?"flex":"none";
+}
+
+// QR
+function openQR(idx){
+  qrCb=function(code){
+    var t=mTasks[idx];
+    if(t&&code.trim()===t.qrCode.trim()){completeTask(idx);closeQR();showNotif("QR КОД ПОТВЪРДЕН!");}
+    else{document.getElementById("qr-res").textContent="ГРЕШЕН КОД - ОПИТАЙТЕ ОТНОВО";setTimeout(function(){document.getElementById("qr-res").textContent="";},2000);}
+  };
+  startQR();
+}
+async function startQR(){
+  document.getElementById("qr-overlay").classList.add("active");
+  try{
+    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    var video=document.getElementById("qr-video");video.srcObject=qrStream;await video.play();
+    var canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");
+    qrInt=setInterval(function(){
+      if(video.readyState>=2){
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0);
+        var img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        var code=jsQR(img.data,img.width,img.height);
+        if(code&&qrCb)qrCb(code.data);
+      }
+    },200);
+  }catch(e){document.getElementById("qr-res").textContent="КАМЕРАТА Е НЕДОСТЪПНА";}
+}
+function closeQR(){
+  clearInterval(qrInt);qrInt=null;qrCb=null;
+  if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;}
+  document.getElementById("qr-overlay").classList.remove("active");
+  document.getElementById("qr-res").textContent="";
+}
+
+// MESSAGES
+function renderMsgs(){
+  var visible=mMsgs.filter(function(m){return m.sent;});
+  var el=document.getElementById("msgs-list"),emp=document.getElementById("msgs-empty");
+  if(!visible.length){el.innerHTML="";emp.style.display="block";return;}
+  emp.style.display="none";
+  var labels={alert:"ПРЕДУПРЕЖДЕНИЕ",info:"ИНФОРМАЦИЯ",order:"ЗАПОВЕД"};
+  el.innerHTML=visible.map(function(m,i){
+    return "<div class='msg-card "+(m.read?"read":"unread")+"'>"+
+      "<div class='msg-type "+m.type+"'>"+(labels[m.type]||"СЪОБЩЕНИЕ")+"</div>"+
+      "<div class='msg-text'>"+m.text+"</div>"+
+      (!m.read?"<button class='read-btn' onclick='markRead("+i+")'>ПРОЧЕТЕНО</button>":"")+
+      "</div>";
+  }).join("");
+}
+function markRead(idx){
+  var visible=mMsgs.filter(function(m){return m.sent;});
+  if(visible[idx]){visible[idx].read=true;unread=Math.max(0,unread-1);renderMsgBadge();renderMsgs();}
+}
+function renderMsgBadge(){
+  var b=document.getElementById("badge-msgs");
+  if(unread>0){b.textContent=unread;b.style.display="flex";}else{b.style.display="none";}
+}
+
+// NOTIF
+function showNotif(text){
+  var n=document.createElement("div");n.className="notif";n.textContent=text;
+  document.body.appendChild(n);setTimeout(function(){n.remove();},3000);
+}
+function showNotice(id,type,text){
+  var el=document.getElementById(id);el.className="notice "+type;el.textContent=text;el.style.display="block";
+  setTimeout(function(){el.style.display="none";},3000);
+}
+
+// ── SCENARIO EDITOR ──
+var editIdx=-1;
+var LSS2="gsh_sc";
+function lsScenarios(){try{var d=localStorage.getItem(LSS2);return d?JSON.parse(d):[];}catch(e){return[];}}
+function saveScenarios(arr){try{localStorage.setItem(LSS2,JSON.stringify(arr));}catch(e){}}
+
+function goEditor(idx){
+  editIdx=(idx===undefined?-1:idx);
+  clearEditor();
+  if(editIdx>=0){
+    var sc=lsScenarios()[editIdx];
+    if(sc){
+      document.getElementById("ed-opname").value=sc.opName||"";
+      document.getElementById("ed-dur").value=sc.duration||35;
+      document.getElementById("ed-threat").value=sc.threat||"orange";
+      document.getElementById("ed-a-role").value=sc.alfa.role||"";
+      document.getElementById("ed-a-brief").value=sc.alfa.briefing||"";
+      document.getElementById("ed-a-warn").value=sc.alfa.conflictWarning||"";
+      document.getElementById("ed-b-role").value=sc.bravo.role||"";
+      document.getElementById("ed-b-brief").value=sc.bravo.briefing||"";
+      document.getElementById("ed-b-warn").value=sc.bravo.conflictWarning||"";
+      (sc.alfa.objectives||[]).forEach(function(v){addEdRow("ed-a-objs","Задача...",v);});
+      (sc.alfa.intel||[]).forEach(function(v){addEdRow("ed-a-intel","Разузнавателна информация...",v);});
+      (sc.bravo.objectives||[]).forEach(function(v){addEdRow("ed-b-objs","Задача...",v);});
+      (sc.bravo.intel||[]).forEach(function(v){addEdRow("ed-b-intel","Разузнавателна информация...",v);});
+      document.getElementById("ed-title").textContent="РЕДАКТИРАНЕ";
+    }
+  } else {
+    document.getElementById("ed-title").textContent="НОВ СЦЕНАРИЙ";
+  }
+  showScreen("s-editor");
+}
+
+function clearEditor(){
+  ["ed-opname","ed-dur","ed-a-role","ed-a-brief","ed-a-warn","ed-b-role","ed-b-brief","ed-b-warn"].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value="";
+  });
+  document.getElementById("ed-threat").value="orange";
+  ["ed-a-objs","ed-a-intel","ed-b-objs","ed-b-intel"].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.innerHTML="";
+  });
+  document.getElementById("ed-notice").style.display="none";
+}
+
+function addEdRow(containerId, placeholder, value){
+  var c=document.getElementById(containerId);
+  if(!c)return;
+  var d=document.createElement("div");
+  d.className="row-wrap";
+  d.style.position="relative";
+  d.innerHTML="<button class='del-row' onclick='this.parentElement.remove()'>X</button>"+
+    "<input type='text' placeholder='"+placeholder+"' value='"+(value||"")+"'>";
+  c.appendChild(d);
+}
+
+function getEdList(containerId){
+  return [].slice.call(document.querySelectorAll("#"+containerId+" input")).map(function(i){return i.value.trim();}).filter(Boolean);
+}
+
+function saveScenario(){
+  var opName=document.getElementById("ed-opname").value.trim();
+  var aBrief=document.getElementById("ed-a-brief").value.trim();
+  var bBrief=document.getElementById("ed-b-brief").value.trim();
+  if(!opName||!aBrief||!bBrief){
+    showNotice("ed-notice","err","Попълнете: Име + Брифинг за Алфа + Брифинг за Браво");
+    return;
+  }
+  var sc={
+    opName:opName,
+    duration:parseInt(document.getElementById("ed-dur").value)||35,
+    threat:document.getElementById("ed-threat").value,
+    alfa:{
+      role:document.getElementById("ed-a-role").value.trim()||"АЛФА",
+      briefing:aBrief,
+      objectives:getEdList("ed-a-objs"),
+      intel:getEdList("ed-a-intel"),
+      conflictWarning:document.getElementById("ed-a-warn").value.trim()
+    },
+    bravo:{
+      role:document.getElementById("ed-b-role").value.trim()||"БРАВО",
+      briefing:bBrief,
+      objectives:getEdList("ed-b-objs"),
+      intel:getEdList("ed-b-intel"),
+      conflictWarning:document.getElementById("ed-b-warn").value.trim()
+    }
+  };
+  var arr=lsScenarios();
+  if(editIdx>=0){arr[editIdx]=sc;}else{arr.push(sc);}
+  saveScenarios(arr);
+  showNotice("ed-notice","ok","Сценарият е запазен успешно!");
+  setTimeout(function(){showScreen("s-settings");loadScList();},1200);
+}
+
+function loadScList(){
+  var arr=lsScenarios();
+  var cnt=document.getElementById("sc-count");
+  if(cnt)cnt.textContent="("+arr.length+")";
+  var el=document.getElementById("sc-list");
+  if(!el)return;
+  if(!arr.length){el.innerHTML="<div class='no-items' style='padding:16px'>НЯМА ЗАПАЗЕНИ СЦЕНАРИИ</div>";return;}
+  el.innerHTML=arr.map(function(sc,i){
+    return "<div class='sc-item'>"+
+      "<div style='flex:1'>"+
+        "<div class='sc-item-name'>"+sc.opName+"</div>"+
+        "<div class='sc-item-roles'>АЛФА: "+(sc.alfa.role||"???")+" | БРАВО: "+(sc.bravo.role||"???")+" | "+(sc.duration||"?")+" мин.</div>"+
+      "</div>"+
+      "<button class='sc-btn e' onclick='goEditor("+i+")'>✎</button>"+
+      "<button class='sc-btn d' onclick='delScenario("+i+")'>✕</button>"+
+    "</div>";
+  }).join("");
+}
+
+function delScenario(idx){
+  var arr=lsScenarios();
+  arr.splice(idx,1);
+  saveScenarios(arr);
+  loadScList();
+}
+
+</script>
+
+<!-- EDITOR SCREEN -->
+<div class="screen" id="s-editor">
+  <div class="dark-topbar">
+    <button class="dark-back" onclick="showScreen('s-settings');loadScList()">НАЗАД</button>
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;color:#555" id="ed-title">НОВ СЦЕНАРИЙ</div>
+    <div style="font-size:9px;color:#222">ГЩ</div>
+  </div>
+  <div class="tc">
+    <div class="frow"><div class="flbl">ИМЕ НА ОПЕРАЦИЯТА</div><input type="text" id="ed-opname" placeholder="ОПЕРАЦИЯ: СТОМАНЕН ВЯТЪР" maxlength="60"></div>
+    <div class="frow"><div class="flbl">ПРОДЪЛЖИТЕЛНОСТ (мин.)</div><input type="text" id="ed-dur" placeholder="35" maxlength="4"></div>
+    <div class="frow"><div class="flbl">НИВО ЗАПЛАХА</div>
+      <select id="ed-threat"><option value="green">ЗЕЛЕНА</option><option value="yellow">ЖЪЛТА</option><option value="orange" selected>ОРАНЖЕВА</option><option value="red">ЧЕРВЕНА</option></select>
+    </div>
+
+    <!-- ALFA -->
+    <div class="ed-sec">
+      <div class="ed-sec-hdr">ОТБОР АЛФА</div>
+      <div style="padding:10px 12px;background:rgba(0,6,1,.8)">
+        <div class="frow"><div class="flbl">РОЛЯ</div><input type="text" id="ed-a-role" placeholder="НАПАДЕНИЕ" maxlength="40"></div>
+        <div class="frow"><div class="flbl">БРИФИНГ</div><textarea id="ed-a-brief" rows="3" placeholder="Описание на ситуацията за Алфа..."></textarea></div>
+        <div class="frow">
+          <div class="flbl">ЗАДАЧИ <button class="add-row-btn" onclick="addEdRow('ed-a-objs','Задача...')" style="margin-left:8px;padding:2px 8px;font-size:9px">+ ДОБАВИ</button></div>
+          <div id="ed-a-objs"></div>
+        </div>
+        <div class="frow">
+          <div class="flbl">РАЗУЗНАВАНЕ <button class="add-row-btn" onclick="addEdRow('ed-a-intel','Разузнавателна информация...')" style="margin-left:8px;padding:2px 8px;font-size:9px">+ ДОБАВИ</button></div>
+          <div id="ed-a-intel"></div>
+        </div>
+        <div class="frow"><div class="flbl">ПРЕДУПРЕЖДЕНИЕ (как Браво им пречи)</div><input type="text" id="ed-a-warn" placeholder="Отбор Браво охранява обекта..." maxlength="160"></div>
+      </div>
+    </div>
+
+    <!-- BRAVO -->
+    <div class="ed-sec">
+      <div class="ed-sec-hdr b">ОТБОР БРАВО</div>
+      <div style="padding:10px 12px;background:rgba(6,3,0,.8)">
+        <div class="frow"><div class="flbl" style="color:#cc6600">РОЛЯ</div><input type="text" id="ed-b-role" placeholder="ОТБРАНА" maxlength="40"></div>
+        <div class="frow"><div class="flbl" style="color:#cc6600">БРИФИНГ</div><textarea id="ed-b-brief" rows="3" placeholder="Описание на ситуацията за Браво..."></textarea></div>
+        <div class="frow">
+          <div class="flbl" style="color:#cc6600">ЗАДАЧИ <button class="add-row-btn" onclick="addEdRow('ed-b-objs','Задача...')" style="margin-left:8px;padding:2px 8px;font-size:9px">+ ДОБАВИ</button></div>
+          <div id="ed-b-objs"></div>
+        </div>
+        <div class="frow">
+          <div class="flbl" style="color:#cc6600">РАЗУЗНАВАНЕ <button class="add-row-btn" onclick="addEdRow('ed-b-intel','Разузнавателна информация...')" style="margin-left:8px;padding:2px 8px;font-size:9px">+ ДОБАВИ</button></div>
+          <div id="ed-b-intel"></div>
+        </div>
+        <div class="frow"><div class="flbl" style="color:#cc6600">ПРЕДУПРЕЖДЕНИЕ (как Алфа им пречи)</div><input type="text" id="ed-b-warn" placeholder="Отбор Алфа ще се опита да проникне..." maxlength="160"></div>
+      </div>
+    </div>
+
+    <div id="ed-notice" class="notice" style="display:none"></div>
+    <button class="save-settings-btn" onclick="saveScenario()">ЗАПАЗИ СЦЕНАРИЯ</button>
+    <div style="height:20px"></div>
+  </div>
+</div>
+</body>
+</html>
